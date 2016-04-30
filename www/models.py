@@ -12,6 +12,7 @@ import time, uuid
 from orm import Model, StringField, BooleanField, FloatField, TextField
 
 def next_id():
+    # If all you want is a unique ID, you should probably call uuid1() or uuid4().
     return '%015d%s000' % (int(time.time() * 1000), uuid.uuid4().hex)
 
 
