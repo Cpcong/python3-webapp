@@ -4,7 +4,7 @@
 __author__ = 'pcer'
 
 import asyncio
-import logging
+import logging;#logging.basicConfig(level = logging.INFO)
 import aiomysql
 
 def log(sql, args=()):
@@ -27,11 +27,15 @@ async def create_pool(loop, **kw):
     ) 
 
 
+# 要执行SELECT语句，我们用select函数执行
 async def select(sql, args, size = None):
     log(sql, args)
     global __pool
     async with __pool.get() as conn:
+        # create default cursor
         async with conn.cursor(aiomysql.DictCursor) as cur:
+            # execute sql query
+            # SQL语句的占位符是?，而MySQL的占位符是%s
             await cur.execute(sql.replace('?', '%s'), args or ())
             if size:
                 rs = await cur.fetchmany(size)
@@ -40,22 +44,24 @@ async def select(sql, args, size = None):
         logging.info('rows returned: %s' % len(rs))
         return rs
 
-
-
-
+# 要执行INSERT、UPDATE、DELETE语句，可以定义一个通用的execute()函数，因为这3种SQL的执行都需要相同的参数，以及返回一个整数表示影响的行数
 async def execute(sql, args, autocommit = True):
     log(sql)
     async with __pool.get() as conn:
         if not autocommit:
+            # A coroutine to begin transaction.
             await conn.begin()
         try:
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(sql.replace('?', '%s'), args)
+                # Returns the number of rows that has been produced of affected.
                 affected = cur.rowcount
             if not autocommit:
+                # Commit changes to stable storage coroutine.
                 await conn.commit()
         except BaseException as e:
             if not autocommit:
+                # Roll back the current transaction coroutine.
                 await conn.rollback()
             raise
         return affected
@@ -121,8 +127,10 @@ class ModelMetaclass(type):
                     fields.append(k)
         if not primaryKey:
             raise RuntimeError('Primary key not found.')
+        # 把class中的Field删除
         for k in mappings.keys():
             attrs.pop(k)
+        # 反撇号`避免字段名与保留字冲突
         escaped_fields = list(map(lambda f: '`%s`' % f, fields))   
         attrs['__mappings__'] = mappings # 保留主键和列的关系
         attrs['__table__'] = tableName
@@ -131,12 +139,17 @@ class ModelMetaclass(type):
         # 构造默认的SELECT, INSERT, UPDATE和DELETE语句:
         attrs['__select__'] = 'select `%s`, %s from `%s`' % (primaryKey, ', '.join(escaped_fields), tableName)
         attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ', '.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
+        # map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)表示如果创建Field实例没传入name参数 则使用Model中的属性名
         attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tableName, ', '.join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)), primaryKey)
         attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tableName, primaryKey)
         return type.__new__(cls, name, bases, attrs) 
 
 
-
+# Model从dict继承，所以具备所有dict的功能，同时又实现了特殊方法__getattr__()和__setattr__()，因此又可以像引用普通字段那样写：
+# >>> user['id']
+# 123
+# >>> user.id
+# 123
 class Model(dict, metaclass = ModelMetaclass):
     def __init__(self, **kw):
         super(Model, self).__init__(**kw)
@@ -153,6 +166,7 @@ class Model(dict, metaclass = ModelMetaclass):
     def getValue(self, key):
         return getattr(self, key, None)
 
+    # 给一个Field增加一个default参数可以让ORM自己填入缺省值，非常方便。并且，缺省值可以作为函数对象传入
     def getValueOrDefault(self, key):
         value = getattr(self, key, None)
         if value is None:
