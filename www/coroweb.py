@@ -143,7 +143,7 @@ class RequestHandler(object):
                 for name in self._named_kw_args:
                     if name in kw:
                         copy[name] = kw[name]
-                    kw = copy
+                kw = copy
             # check named arg:
             for k, v in request.match_info.items():
                 if k in kw:
@@ -181,7 +181,7 @@ def add_route(app, fn):
         raise ValueError('@get or @post not defined in %s.' % str(fn))
     if not asyncio.iscoroutinefunction(fn) and not inspect.isgeneratorfunction(fn):
         fn = asyncio.coroutine(fn)
-    logging.info('add route %s %S => %s(%s)' % (method, path, fn.__name__, ', '.join(inspect.signature(fn).parameters.keys())))
+    logging.info('add route %s %s => %s(%s)' % (method, path, fn.__name__, ', '.join(inspect.signature(fn).parameters.keys())))
     app.router.add_route(method, path, RequestHandler(app, fn))
 
 def add_routes(app, module_name):

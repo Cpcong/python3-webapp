@@ -81,6 +81,8 @@ async def response_factory(app, handler):
         if isinstance(r, dict):
             template = r.get('__template__')
             if template is None:
+                # __dict__:  包含对象所有属性和值的对
+                # default参数指定转化函数
                 resp = web.Response(body = json.dumps(r, ensure_ascii = False, default = lambda o: o.__dict__).encode('utf-8'))
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
@@ -99,6 +101,7 @@ async def response_factory(app, handler):
         resp = web.Response(body = str(r).encode('utf-8'))
         resp.content_type = 'text/plain:charset=utf-8'
         return resp
+    return response
 
 def datetime_filter(t):
     delta = int(time.time() - t)
@@ -118,6 +121,7 @@ async def init(loop):
     app = web.Application(loop = loop, middlewares = [
         logger_factory, response_factory
     ])
+    # filters的函数可以在jinja2模板中使用
     init_jinja2(app, filters = dict(datetime = datetime_filter))
     add_routes(app, 'handlers')
     add_static(app)
