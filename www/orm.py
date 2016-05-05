@@ -41,8 +41,10 @@ async def select(sql, args, size = None):
                 rs = await cur.fetchmany(size)
             else:
                 rs = await cur.fetchall()
+            await cur.close()
         logging.info('rows returned: %s' % len(rs))
         return rs
+
 
 # 要执行INSERT、UPDATE、DELETE语句，可以定义一个通用的execute()函数，因为这3种SQL的执行都需要相同的参数，以及返回一个整数表示影响的行数
 async def execute(sql, args, autocommit = True):
@@ -56,6 +58,7 @@ async def execute(sql, args, autocommit = True):
                 await cur.execute(sql.replace('?', '%s'), args)
                 # Returns the number of rows that has been produced of affected.
                 affected = cur.rowcount
+                await cur.close()
             if not autocommit:
                 # Commit changes to stable storage coroutine.
                 await conn.commit()
@@ -65,6 +68,7 @@ async def execute(sql, args, autocommit = True):
                 await conn.rollback()
             raise
         return affected
+
 
 def create_args_string(num):
     L = []
@@ -203,6 +207,8 @@ class Model(dict, metaclass = ModelMetaclass):
                 raise ValueError('Invalid limit value: %s' % str(limit))
         rs = await select(' '.join(sql), args)
         return [cls(**r) for r in rs]
+
+
 
     @classmethod
     async def findNumber(cls, selectField, where = None, args = None):

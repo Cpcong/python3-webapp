@@ -181,8 +181,10 @@ def add_route(app, fn):
         raise ValueError('@get or @post not defined in %s.' % str(fn))
     if not asyncio.iscoroutinefunction(fn) and not inspect.isgeneratorfunction(fn):
         fn = asyncio.coroutine(fn)
+    logging.info('DEBUG fn: %s iscoroutine: %s, isgenerator:%s' % (fn.__name__, asyncio.iscoroutinefunction(fn), inspect.isgeneratorfunction(fn)))
     logging.info('add route %s %s => %s(%s)' % (method, path, fn.__name__, ', '.join(inspect.signature(fn).parameters.keys())))
     app.router.add_route(method, path, RequestHandler(app, fn))
+
 
 def add_routes(app, module_name):
     # The method rfind() returns the last index where the substring str is found, or -1 if no such index exists
