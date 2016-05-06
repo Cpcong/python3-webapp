@@ -18,6 +18,7 @@ from apis import APIValueError, APIResourceNotFoundError
 COOKIE_NAME = 'awesession'
 _COOKIE_KEY = configs.session.secret
 
+
 def user2cookie(user, max_age):
     '''
     Generate cookie str by user.
@@ -122,7 +123,6 @@ _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 @post('/api/users')
 async def api_register_user(*, email, name, passwd):
-    logging.info('DEBUG------------------------')
     if not name or not name.strip():
         raise APIValueError('name')
     if not email or not _RE_EMAIL.match(email):
