@@ -9,7 +9,7 @@ import re, time, json, logging, hashlib, base64, asyncio
 
 
 from coroweb import get, post
-
+from aiohttp import web
 from models import User, Comment, Blog, next_id
 
 from config import configs
@@ -92,7 +92,9 @@ async def authenticate(*, email, passwd):
         raise APIValueError('email', 'Email not exist.')
     user = users[0]
     # check passwd:
+    # sha1: create a SHA1 hash object
     sha1 = hashlib.sha1()
+    # update: Update the hash object with the object arg,Repeated calls are equivalent to a single call with the concatenation of all the arguments
     sha1.update(user.id.encode('utf-8'))
     sha1.update(b':')
     sha1.update(passwd.encode('utf-8'))
@@ -108,17 +110,19 @@ async def authenticate(*, email, passwd):
 
 @get('/signout')
 def signout(request):
+    # referer是HTTP表头的一个字段，用来表示从哪儿链接到目前的网页，采用的格式是URL
     referer = request.headers.get('Referer')
     r = web.HTTPFound(referer or '/')
     r.set_cookie(COOKIE_NAME, '-deleted-', max_age = 0, httponly = True)
     logging.info('user signed out.')
     return r
 
-_RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1, 4}$')
+_RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
 _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 @post('/api/users')
 async def api_register_user(*, email, name, passwd):
+    logging.info('DEBUG------------------------')
     if not name or not name.strip():
         raise APIValueError('name')
     if not email or not _RE_EMAIL.match(email):
