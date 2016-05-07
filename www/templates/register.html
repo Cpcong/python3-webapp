@@ -41,6 +41,7 @@ $(function(){
                     email : email,
                     passwd : CryptoJS.SHA1(email + ':' + this.password1).toString()
                 }, function (err,r) {
+                    //若服务器返回的数据中有error属性，则将数据赋值给err参数，否则err置为空
                     if (err){
                         return $form.showFormError(err);
                     }

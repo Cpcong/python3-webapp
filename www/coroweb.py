@@ -163,6 +163,7 @@ class RequestHandler(object):
             r = await self._func(**kw)          
             return r
         except APIError as e:
+            # 此dict中的error信息最终可以在html中的portJSON的回调函数中拿到
             return dict(error = e.error, data = e.data, message = e.message)
 
 # Adds a router and a handler for returning static files.
