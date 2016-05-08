@@ -44,7 +44,7 @@ class Page(object):
         if (item_count == 0) or (page_index > self.page_count):
             self.offset = 0
             self.limit = 0
-            self.index = 1
+            self.page_index = 1
         else:
             self.page_index = page_index
             self.offset = self.page_size * (page_index - 1)
