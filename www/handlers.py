@@ -283,6 +283,7 @@ async def api_get_blog(*, id):
     blog = await Blog.find(id)
     return blog
 
+# 
 @post('/api/blogs')
 async def api_create_blog(request, *, name, summary, content):
     #check_admin(request)
@@ -304,7 +305,7 @@ async def api_update_blog(id, request, *, name, summary, content):
         raise APIValueError('name', 'name cannot be empty.') 
     if not summary or not summary.strip():
         raise APIValueError('summary', 'summary cannot be empty.')
-    if not content or not content.stip():
+    if not content or not content.strip():
         raise APIValueError('content', 'content cannot be empty.')
     blog.name = name.strip()
     blog.summary = summary.strip()
