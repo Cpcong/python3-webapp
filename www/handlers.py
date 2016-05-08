@@ -18,10 +18,13 @@ from apis import Page, APIError, APIValueError, APIResourceNotFoundError, APIPer
 COOKIE_NAME = 'awesession'
 _COOKIE_KEY = configs.session.secret
 
+
+# 检查该用户是否是管理员，对应user表中的admin字段
 def check_admin(request):
     if request.__user__ is None or not request.__user__.admin:
         raise APIPermissionError()
 
+# 将str类型的页码转为int
 def get_page_index(page_str):
     p = 1
     try:
@@ -90,6 +93,7 @@ async def index(*, page = '1'):
         'blogs' : blogs
     }
 
+# 返回blog页面及blog数据
 @get('/blog/{id}')
 async def get_blog(id):
     blog = await Blog.find(id)
@@ -117,6 +121,74 @@ def signin():
         '__template__' : 'signin.html'
     }
 
+
+@get('/signout')
+def signout(request):
+    # referer是HTTP表头的一个字段，用来表示从哪儿链接到目前的网页，采用的格式是URL
+    referer = request.headers.get('Referer')
+    r = web.HTTPFound(referer or '/')
+    # 把cookie的值修改，使得cookie中不再含有user信息
+    r.set_cookie(COOKIE_NAME, '-deleted-', max_age = 0, httponly = True)
+    logging.info('user signed out.')
+    return r
+
+
+@get('/manage/')
+def manage():
+    return 'redirect:/manage/comments'
+
+
+# 评论管理界面
+@get('/manage/comments')
+def manage_comments(*, page = '1'):
+    return {
+        '__template__' : 'manage_comments.html',
+        'page_index' : get_page_index(page)
+    }
+
+# 博客管理界面
+@get('/manage/blogs')
+def manage_blogs(*, page = '1'):
+    return {
+        '__template__' : 'manage_blogs.html',
+        'page_index' : get_page_index(page)
+    }
+
+
+# 写新博客
+@get('/manage/blogs/create')
+def manage_create_blog():
+    return {
+        '__template__' : 'manage_blog_edit.html',
+        'id' : '',
+        'action' : '/api/blogs'
+    }
+
+
+# 编辑博客
+@get('/manage/blogs/edit')
+def manage_edit_blog(*, id):
+    return {
+        '__template__' : 'manage_blog_edit.html',
+        'id' : id,
+        'action' : '/api/blogs/%s' % id
+    }
+
+# 查看用户
+@get('/manage/users')
+def manage_users(*, page = '1'):
+    return {
+        '__template__' : 'manage_users.html',
+        'page_index' : get_page_index(page)
+    }
+
+
+'''
+RESTFUL API  处理返回数据而不返回html页面
+'''
+
+
+# 登录时验证密码，并设置cookie
 @post('/api/authenticate')
 async def authenticate(*, email, passwd):
     if not email:
@@ -144,56 +216,8 @@ async def authenticate(*, email, passwd):
     r.body = json.dumps(user, ensure_ascii = False).encode('utf-8')
     return r
 
-@get('/signout')
-def signout(request):
-    # referer是HTTP表头的一个字段，用来表示从哪儿链接到目前的网页，采用的格式是URL
-    referer = request.headers.get('Referer')
-    r = web.HTTPFound(referer or '/')
-    r.set_cookie(COOKIE_NAME, '-deleted-', max_age = 0, httponly = True)
-    logging.info('user signed out.')
-    return r
 
-@get('/manage/')
-def manage():
-    return 'redirect:/manage/comments'
-
-@get('/manage/comments')
-def manage_comments(*, page = '1'):
-    return {
-        '__template__' : 'manage_comments.html',
-        'page_index' : get_page_index(page)
-    }
-
-@get('/manage/blogs')
-def manage_blogs(*, page = '1'):
-    return {
-        '__template__' : 'manage_blogs.html',
-        'page_index' : get_page_index(page)
-    }
-
-@get('/manage/blogs/create')
-def manage_create_blog():
-    return {
-        '__template__' : 'manage_blog_edit.html',
-        'id' : '',
-        'action' : '/api/blogs'
-    }
-
-@get('/manage/blogs/edit')
-def manage_edit_blog(*, id):
-    return {
-        '__template__' : 'manage_blog_edit.html',
-        'id' : id,
-        'action' : '/api/blogs/%s' % id
-    }
-
-@get('/manage/users')
-def manage_users(*, page = '1'):
-    return {
-        '__template__' : 'manage_users.html',
-        'page_index' : get_page_index(page)
-    }
-
+# 获得所有评论, 请求源自manage_comments.html
 @get('/api/comments')
 async def api_comments(*, page = '1'):
     page_index = get_page_index(page)
@@ -204,6 +228,8 @@ async def api_comments(*, page = '1'):
     comments = await Comment.findAll(orderBy = 'created_at desc', limit = (p.offset, p.limit))
     return dict(page = p, comments = comments)
 
+
+# 提交评论, 请求源自blog.html
 @post('/api/blogs/{id}/comments')
 async def api_create_comment(id, request, *, content):
     user = request.__user__
@@ -218,6 +244,8 @@ async def api_create_comment(id, request, *, content):
     await comment.save()
     return comment
 
+
+# 删除指定评论
 @post('/api/comments/{id}/delete')
 async def api_delete_comments(id, request):
     check_admin(request)
@@ -227,6 +255,7 @@ async def api_delete_comments(id, request):
     await c.remove()
     return dict(id = id)
 
+# 获得某页的用户信息
 @get('/api/users')
 async def api_get_users(*, page = '1'):
     page_index = get_page_index(page)
@@ -243,6 +272,7 @@ async def api_get_users(*, page = '1'):
 _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
 _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
+# 用户注册,
 @post('/api/users')
 async def api_register_user(*, email, name, passwd):
     if not name or not name.strip():
@@ -267,6 +297,8 @@ async def api_register_user(*, email, name, passwd):
     r.body = json.dumps(user, ensure_ascii = False).encode('utf-8')
     return r
 
+
+# 获得所有博客信息, 请求源自manage_blogs.html
 @get('/api/blogs')
 async def api_blogs(*, page = '1'):
     page_index = get_page_index(page)
@@ -278,12 +310,13 @@ async def api_blogs(*, page = '1'):
     return dict(page = p, blogs = blogs)
 
 
+# 获得单篇博客信息, 请求源自manage_blog_edit.html
 @get('/api/blogs/{id}')
 async def api_get_blog(*, id):
     blog = await Blog.find(id)
     return blog
 
-# 
+# 提交博客日志
 @post('/api/blogs')
 async def api_create_blog(request, *, name, summary, content):
     #check_admin(request)
@@ -297,6 +330,7 @@ async def api_create_blog(request, *, name, summary, content):
     await blog.save()
     return blog
 
+# 更新博客
 @post('/api/blogs/{id}')
 async def api_update_blog(id, request, *, name, summary, content):
     check_admin(request)
@@ -313,6 +347,7 @@ async def api_update_blog(id, request, *, name, summary, content):
     await blog.update()
     return blog
 
+#  删除博客数据
 @post('/api/blogs/{id}/delete')
 async def api_delete_blog(request, *, id):
     check_admin(request)
