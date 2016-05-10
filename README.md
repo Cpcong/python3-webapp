@@ -69,6 +69,7 @@ python3.5的安装(ubuntu):
 接下来pip的安装:
 
 `$ wget https://bootstrap.pypa.io/get-pip.py`
+
 `$ sudo python3.5 get-pip.py`
 
 安装后输入`$ pip3 -V`验证成功
