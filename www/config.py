@@ -28,6 +28,9 @@ class Dict(dict):
         self[key] = value
 
 def merge(defaults, override):
+    '''
+    用override的数据覆盖default的数据.
+    '''
     r = {}
     for k, v in defaults.items():
         if k in override:
@@ -40,6 +43,9 @@ def merge(defaults, override):
     return r
 
 def toDict(d):
+    '''
+    将dict类型数据转为Dict类型数据.
+    '''
     D = Dict()
     for k, v in d.items():
         D[k] = toDict(v) if isinstance(v, dict) else v

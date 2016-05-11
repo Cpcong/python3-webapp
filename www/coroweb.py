@@ -37,8 +37,11 @@ def post(path):
         return wrapper
     return decorator
 
-# 得到没有默认值的命名关键字参数
+# 
 def get_required_kw_args(fn):
+    '''
+    得到fn没有默认值的命名关键字参数.
+    '''
     args = []
     # 获得函数签名的参数，返回一个mapping
     params = inspect.signature(fn).parameters
@@ -49,8 +52,10 @@ def get_required_kw_args(fn):
             args.append(name)
     return tuple(args)
 
-# 得到所有命名关键字参数
 def get_named_kw_args(fn):
+    '''
+    得到fn所有命名关键字参数.
+    '''
     args = []
     params = inspect.signature(fn).parameters
     for name, param in params.items():
@@ -58,15 +63,19 @@ def get_named_kw_args(fn):
             args.append(name)
     return tuple(args)
 
-# 是否有命名关键字参数
 def has_named_kw_args(fn):
+    '''
+    是否有命名关键字参数.
+    '''
     params = inspect.signature(fn).parameters
     for name, param in params.items():
             if param.kind == inspect.Parameter.KEYWORD_ONLY:
                 return True
 
-# 是否有关键字参数
 def has_var_kw_arg(fn):
+    '''
+    是否有关键字参数.
+    '''
     params = inspect.signature(fn).parameters
     for name, param in params.items():
         # VAR_KEYWORD: 
@@ -75,6 +84,9 @@ def has_var_kw_arg(fn):
             return True
 
 def has_request_arg(fn):
+    '''
+    是否有参数request.
+    '''
     sig = inspect.signature(fn)
     params = sig.parameters
     found = False
@@ -89,6 +101,9 @@ def has_request_arg(fn):
 
 
 class RequestHandler(object):
+    '''
+    RequestHandler的作用就是根据url处理函数的参数，从request中取出相应的数据并传递给url处理函数.
+    '''
     def __init__(self, app, fn):
         self._app = app
         self._func = fn
@@ -166,16 +181,23 @@ class RequestHandler(object):
             # 此dict中的error信息最终可以在html中的portJSON的回调函数中拿到
             return dict(error = e.error, data = e.data, message = e.message)
 
-# Adds a router and a handler for returning static files.
+
 def add_static(app):
+    '''
+    Adds a router and a handler for returning static files.
+
+    Useful for serving static content like images, javascript and css files.
+    '''
     # static目录的绝对路径
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
     app.router.add_static('/static/', path)
     logging.info('add static %s => %s' % ('/static/', path))
 
 
-# 注册一个URL处理函数
 def add_route(app, fn):
+    '''
+    注册一个URL处理函数.
+    '''
     method = getattr(fn, '__method__', None)
     path = getattr(fn, '__route__', None)
     if path is None or method is None:
@@ -188,6 +210,9 @@ def add_route(app, fn):
 
 
 def add_routes(app, module_name):
+    '''
+    读取handlers模块，注册模块中的url处理函数.
+    '''
     # The method rfind() returns the last index where the substring str is found, or -1 if no such index exists
     n = module_name.rfind('.')
     if n == (-1):

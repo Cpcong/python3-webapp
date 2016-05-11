@@ -11,6 +11,9 @@ def log(sql, args=()):
     logging.info('SQL:%s' % sql)
 
 async def create_pool(loop, **kw):
+    '''
+    创建连接池.
+    '''
     logging.info('create database connection pool...')
     global __pool
     __pool = await aiomysql.create_pool(
@@ -27,8 +30,10 @@ async def create_pool(loop, **kw):
     ) 
 
 
-# 要执行SELECT语句，我们用select函数执行
 async def select(sql, args, size = None):
+    '''
+    要执行SELECT语句，我们用select函数执行.
+    '''
     log(sql, args)
     global __pool
     async with __pool.get() as conn:
@@ -46,8 +51,11 @@ async def select(sql, args, size = None):
         return rs
 
 
-# 要执行INSERT、UPDATE、DELETE语句，可以定义一个通用的execute()函数，因为这3种SQL的执行都需要相同的参数，以及返回一个整数表示影响的行数
+
 async def execute(sql, args, autocommit = True):
+    '''
+    要执行INSERT、UPDATE、DELETE语句，可以定义一个通用的execute()函数，因为这3种SQL的执行都需要相同的参数，以及返回一个整数表示影响的行数
+    '''
     log(sql)
     async with __pool.get() as conn:
         if not autocommit:
@@ -71,6 +79,9 @@ async def execute(sql, args, autocommit = True):
 
 
 def create_args_string(num):
+    '''
+    创建sql语句中的占位符'?'
+    '''
     L = []
     for n in range(num):
         L.append('?')
@@ -107,6 +118,9 @@ class TextField(Field):
 
 
 class ModelMetaclass(type):
+    '''
+    基类，修改子类Model类的属性和并创建它
+    '''
     def __new__(cls, name, bases, attrs):
         # 排除Model类本身
         if name == 'Model':
@@ -149,12 +163,16 @@ class ModelMetaclass(type):
         return type.__new__(cls, name, bases, attrs) 
 
 
-# Model从dict继承，所以具备所有dict的功能，同时又实现了特殊方法__getattr__()和__setattr__()，因此又可以像引用普通字段那样写：
-# >>> user['id']
-# 123
-# >>> user.id
-# 123
+
 class Model(dict, metaclass = ModelMetaclass):
+    '''
+    Model类具有增删改查功能
+    Model从dict继承，所以具备所有dict的功能，同时又实现了特殊方法__getattr__()和__setattr__()，因此又可以像引用普通字段那样写：
+    >>> user['id']
+    123
+    >>> user.id
+    123
+    '''
     def __init__(self, **kw):
         super(Model, self).__init__(**kw)
 

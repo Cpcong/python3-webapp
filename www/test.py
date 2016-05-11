@@ -5,6 +5,9 @@ import asyncio
 
 @asyncio.coroutine
 def test(loop):
+    '''
+    Test orm framewoek.
+    '''
     yield from orm.create_pool(loop=loop,user = 'www-data', password = 'www-data', db = 'awesome')
 
     user = User(id='ni',name = 'Coco Shi',email = '23@kkk', passwd = '102033', image = 'blank')

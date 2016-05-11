@@ -23,6 +23,9 @@ from coroweb import add_routes, add_static
 from handlers import cookie2user, COOKIE_NAME
 
 def init_jinja2(app, **kw):
+    '''
+    初始化模板环境对象Environment的实例, 用来存储配置和全局对象，并且从文件系统装载模板文件.
+    '''
     logging.info('init jinja2...')
     options = dict(
         autoescape = kw.get('autoescape', True),
@@ -47,6 +50,9 @@ def init_jinja2(app, **kw):
     app['__templating__'] = env
 
 async def logger_factory(app, handler):
+    '''
+    middleware(中间件)，用来打印日志.
+    '''
     async def logger(request):
         # 记录日志:
         logging.info('Request: %s %s' % (request.method, request.path))
@@ -56,6 +62,9 @@ async def logger_factory(app, handler):
 
 
 async def auth_factory(app, handler):
+    '''
+    middleware(中间件)，根据cookie识别用户是否已登录
+    '''
     async def auth(request):
         logging.info('check user: %s %s' % (request.method, request.path))
         request.__user__ = None
@@ -86,6 +95,9 @@ async def data_factory(app, handler):
     return parse_data
 
 async def response_factory(app, handler):
+    '''
+    middleware(中间件)，对url处理函数返回的结果进行加工，返回web.Response
+    '''
     async def response(request):
         logging.info('Response handler...')
         r = await handler(request)
@@ -128,6 +140,9 @@ async def response_factory(app, handler):
     return response
 
 def datetime_filter(t):
+    '''
+    在模板文件中使用，显示时间.
+    '''
     delta = int(time.time() - t)
     if delta < 60:
         return u'1分钟前'
@@ -141,6 +156,9 @@ def datetime_filter(t):
     return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
 async def init(loop):
+    '''
+    初始化web服务器.
+    '''
     await orm.create_pool(loop = loop, **configs.db)
     app = web.Application(loop = loop, middlewares = [
         logger_factory, auth_factory, response_factory
